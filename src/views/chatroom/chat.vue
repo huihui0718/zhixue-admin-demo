@@ -25,16 +25,16 @@
             <el-col :span="24">
               <div class="grid-content bg-purple" />
               <el-form-item v-for="chatModules in chatModule" :key="chatModules.id" @click="module1(chatModules.id) ">
-                <div style="font-size: 18px; padding-left: 30px;padding-top:15px ; border: 2px solid rgba(249,249,252); display: block ;border-radius: 10px;">
+                <div style="font-size: 30px; padding-left: 30px;padding-top:15px ; border: 2px solid rgba(249,249,252); display: block ;border-radius: 10px;">
                   <img
-                    :src="'http://localhost:18000' + '/file/module/' + chatModules.pathName "
+                    :src="Api + '/file/module/' + chatModules.pathName "
                     class="avatar"
-                    style="vertical-align: middle;  border-radius: 30px; height: 25px; width: 25px;
+                    style="vertical-align: middle;  border-radius: 30px; height: 40px; width: 40px;
                   display: inline-block; "
                   >
                   {{ chatModules.moduleName }}
-                  <el-button type="primary" plain style="margin-top: 0px; right: 20px; display: inline-block; position: absolute" @click="module1(chatModules)"> 选 择 </el-button>
-                  <div style="font-size: 15px;font-family:SimSun-ExtB;  color: #7e7b7b;">{{ chatModules.moduleContent }}</div>
+                  <el-button type="primary" plain style="margin-top: 0px; right: 20px; display: inline-block; position: absolute" @click="module1(chatModules.id)"> 选 择 </el-button>
+                  <div style="font-size: 15px;color: #7e7b7b;">{{ chatModules.moduleContent }}</div>
                 </div>
               </el-form-item>
             </el-col>
@@ -82,27 +82,28 @@ export default {
   },
   data() {
     return {
+      sModuleId: '1', // 切换房间时的模型Id
       moduleId: '', // 模型ID
       chatModule: [], // 存储模型的数组
-      roomContent: '',
-      roomTitle: '',
+      roomContent: '', // 模型的描述
+      roomTitle: '', // 房间的标题
       cu: false,
       imageUrl: '',
       rules: {},
       dialogVisible: false,
-      sRoomId: '0',
-      sModuleId: '0',
+      sRoomId: '0', // 切换房间时的roomId
       currentUserId: '1234',
       query: {
         page: 0,
         size: 10,
         sort: 'id,desc'
       },
-      rooms: [],
-      messages: [],
+      rooms: [], // 存储房间的数组
+      messages: [], // 存储消息的数组
       messagesLoaded: false,
       headers: {},
-      createNew: false
+      createNew: false,
+      Api: 'http://localhost:18000'
     }
   },
   mounted() {
@@ -150,8 +151,8 @@ export default {
           console.log(err)
         })
     },
-    module1(module) {
-      this.moduleId = module
+    module1(moduleId) {
+      this.moduleId = moduleId
       this.createNew = true
     },
     RoomHistory() {
@@ -165,20 +166,21 @@ export default {
             { _id: '4321', username: '知学chat' },
             { _id: '1234', username: 'me' }
           ],
-          module: this.sModuleId
+          module: '1'
         })
         for (let i = 0; i < this.newRooms.length; i++) {
           this.rooms.push({
             roomId: this.newRooms[i].id,
             roomName: this.newRooms[i].title,
-            avatar: 'http://localhost:18000' + '/file/module/' + this.newRooms[i].module + '.png',
+            avatar: this.Api + '/file/module/' + this.newRooms[i].module + '.png',
             users: [
               { _id: '4321', username: '知学chat' },
               { _id: '1234', username: 'me' }
             ],
-            module: this.sModuleId
+            module: this.newRooms[i].module
           })
         }
+        console.log(this.rooms)
       })
     },
     fetchMessages({ options = {}, room }) {
@@ -228,7 +230,6 @@ export default {
         return
       }
     },
-
     sendMessage(message) {
       debugger
       console.log(this.messages.length)
@@ -279,13 +280,13 @@ export default {
           this.rooms.push({
             roomId: res.id,
             roomName: res.title,
-            avatar: 'http://localhost:18000' + '/file/module/' + this.moduleId.pathName,
+            avatar: this.Api + '/file/module/' + this.moduleId + '.png',
             // 'http://localhost:18000' + '/avatar/' + 'avatar-20230817093848199.png',
             users: [
               { _id: '4321', username: '知学chat' },
               { _id: '1234', username: 'me' }
             ],
-            module: this.sModuleId
+            module: this.moduleId
           })
           this.roomTitle = ''
           this.roomContent = ''
@@ -295,7 +296,6 @@ export default {
         })
       }
     }
-
   }
 }
 </script>
