@@ -7,37 +7,39 @@
       <!--表单组件-->
       <el-dialog :close-on-click-modal="false" :before-close="crud.cancelCU" :visible.sync="crud.status.cu > 0" :title="crud.status.title" width="500px">
         <el-form ref="form" :model="form" :rules="rules" size="small" label-width="80px">
-          <el-form-item label="title" prop="title">
-            <el-input v-model="form.title" style="width: 370px;" />
-          </el-form-item>
-          <el-form-item label="content" prop="content">
-            <el-input v-model="form.content" style="width: 370px;" />
-          </el-form-item>
-          <el-form-item label="module" prop="module">
-            <el-input v-model="form.module" style="width: 370px;" />
-          </el-form-item>
+          <!--          <el-form-item label="房间标题" prop="title">-->
+          <!--            <el-input v-model="form.title" style="width: 370px;" />-->
+          <!--          </el-form-item>-->
+          <!--          <el-form-item label="房间描述" prop="content">-->
+          <!--            <el-input v-model="form.content" style="width: 370px;" />-->
+          <!--          </el-form-item>-->
+          <!--          <el-form-item label="模型名字" prop="moduleName">-->
+          <!--            <el-input v-model="form.moduleName" style="width: 370px;" />-->
+          <!--          </el-form-item>-->
         </el-form>
         <div slot="footer" class="dialog-footer">
           <el-button type="text" @click="crud.cancelCU">取消</el-button>
           <el-button :loading="crud.status.cu === 2" type="primary" @click="crud.submitCU">确认</el-button>
         </div>
       </el-dialog>
-      表格渲染
+      <!--表格渲染-->
       <el-table ref="table" v-loading="crud.loading" :data="crud.data" size="small" style="width: 100%;" @selection-change="crud.selectionChangeHandler">
         <el-table-column type="selection" width="55" />
-        <el-table-column prop="title" label="房间主题" />
+        <el-table-column prop="title" label="房间标题" />
         <el-table-column prop="createtime" label="创建时间" />
-        <el-table-column prop="content" label="房间简介" />
-        <el-table-column prop="module" label="模型" />
-        <el-table-column  label="操作" width="150px" align="center">
+        <el-table-column prop="content" label="房间描述" />
+        <el-table-column prop="updateTime" label="修改时间" />
+        <el-table-column prop="moduleName" label="模型名字" />
+        <el-table-column v-if="true" label="操作" width="150px" align="center">
           <template slot-scope="scope">
             <udOperation
               :data="scope.row"
+              :permission="permission"
             />
           </template>
         </el-table-column>
       </el-table>
-      分页组件
+      <!--分页组件-->
       <pagination />
     </div>
   </div>
@@ -51,7 +53,7 @@ import crudOperation from '@crud/CRUD.operation'
 import udOperation from '@crud/UD.operation'
 import pagination from '@crud/Pagination'
 
-const defaultForm = { id: null, title: null, createtime: null, userId: null, content: null, module: null }
+const defaultForm = { id: null, title: null, createtime: null, userId: null, content: null, module: null, updateTime: null, moduleName: null }
 export default {
   name: 'ChatRoom',
   components: { pagination, crudOperation, rrOperation, udOperation },
@@ -61,7 +63,6 @@ export default {
   },
   data() {
     return {
-      isUser: true,
       // permission: {
       //   add: ['admin', 'chatRoom:add'],
       //   edit: ['admin', 'chatRoom:edit'],
@@ -74,10 +75,11 @@ export default {
         content: [
           { required: true, message: '不能为空', trigger: 'blur' }
         ],
-        module: [
+        moduleName: [
           { required: true, message: '不能为空', trigger: 'blur' }
         ]
-      }    }
+      }
+    }
   },
   methods: {
     // 钩子：在获取表格数据之前执行，false 则代表不获取数据

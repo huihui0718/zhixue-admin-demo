@@ -2,361 +2,89 @@
   <div class="app-container">
     <!--工具栏-->
     <div class="head-container">
-      <vue-advanced-chat
-        height="calc(100vh - 120px)"
-        :current-user-id="currentUserId"
-        :rooms="JSON.stringify(rooms)"
-        :rooms-loaded="true"
-        :messages="JSON.stringify(messages)"
-        :messages-loaded="messagesLoaded"
-        :load-first-room="false"
-        @send-message="sendMessage($event.detail[0])"
-        @fetch-messages="fetchMessages($event.detail[0])"
-        @add-room="dialogVisible = true"
-      />
-      <el-dialog
-        :visible.sync="dialogVisible"
-        :before-close="handleClose"
-        :title="crud.status.title"
-        width="380px"
-      >
-        <el-form>
-          <el-row :gutter="20">
-            <el-col :span="24">
-              <div class="grid-content bg-purple" />
-              <el-form-item v-for="chatModules in chatModule" :key="chatModules.id" @click="module1(chatModules.id) ">
-                <div style="font-size: 18px; padding-left: 30px;padding-top:15px ; border: 2px solid rgba(249,249,252); display: block ;border-radius: 10px;">
-                  <img
-                    :src="'http://localhost:18000' + '/file/module/' + chatModules.pathName "
-                    class="avatar"
-                    style="vertical-align: middle;  border-radius: 30px; height: 25px; width: 25px;
-                  display: inline-block; "
-                  >
-                  {{ chatModules.moduleName }}
-                  <el-button type="primary" plain style="margin-top: 0px; right: 20px; display: inline-block; position: absolute" @click="module1(chatModules)"> 选 择 </el-button>
-                  <div style="font-size: 15px;font-family:SimSun-ExtB;  color: #7e7b7b;">{{ chatModules.moduleContent }}</div>
-                </div>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-form />
-          <el-form>
-            <el-form-item label="房间名:">
-              <el-input v-model="roomTitle" style="width: 160px" />
-            </el-form-item>
-            <el-form-item label="简介:">
-              <el-input v-model="roomContent" style="width: 160px" />
-            </el-form-item>
-          </el-form>
+      <div v-if="crud.props.searchToggle">
+        <!-- 搜索 -->
+        <label class="el-form-item-label">user_id</label>
+        <el-input v-model="query.senderId" clearable placeholder="user_id" style="width: 185px;" class="filter-item" @keyup.enter.native="crud.toQuery" />
+        <rrOperation :crud="crud" />
+      </div>
+      <!--如果想在工具栏加入更多按钮，可以使用插槽方式， slot = 'left' or 'right'-->
+      <crudOperation :permission="permission" />
+      <!--表单组件-->
+      <el-dialog :close-on-click-modal="false" :before-close="crud.cancelCU" :visible.sync="crud.status.cu > 0" :title="crud.status.title" width="500px">
+        <el-form ref="form" :model="form" :rules="rules" size="small" label-width="80px">
         </el-form>
-        <span slot="footer" class="dialog-footer">
-          <el-button @click="dialogVisible = false">取 消</el-button>
-          <el-button type="primary" @click="addRoom">确 定</el-button>
-        </span>
+        <div slot="footer" class="dialog-footer">
+          <el-button type="text" @click="crud.cancelCU">取消</el-button>
+          <el-button :loading="crud.status.cu === 2" type="primary" @click="crud.submitCU">确认</el-button>
+        </div>
       </el-dialog>
+      <!--表格渲染-->
+      <el-table ref="table" v-loading="crud.loading" :data="crud.data" size="small" style="width: 100%;" @selection-change="crud.selectionChangeHandler">
+        <el-table-column type="selection" width="55" />
+<!--        <el-table-column prop="Id" label="Id" />-->
+<!--        <el-table-column prop="timestamp" label="年月日" />-->
+        <el-table-column prop="content" label="content" />
+        <el-table-column prop="senderId" label="user_id" />
+        <el-table-column prop="date" label="时分" />
+        <el-table-column prop="type" label="0:提问 1:回答" />
+<!--        <el-table-column prop="pid" label="pid" />-->
+<!--        <el-table-column prop="userId" label="userId" />-->
+<!--        <el-table-column prop="roomId" label="roomId" />-->
+        <el-table-column v-if="checkPer(['admin','chat:edit','chat:del'])" label="操作" width="150px" align="center">
+          <template slot-scope="scope">
+            <udOperation
+              :data="scope.row"
+              :permission="permission"
+            />
+          </template>
+        </el-table-column>
+      </el-table>
+      <!--分页组件-->
+      <pagination />
     </div>
   </div>
 </template>
 
 <script>
-import { add, getHistory } from '@/api/chat'
-import { getChatModule } from '@/api/chatMoudle'
-import crudNews from '@/api/news'
+import crudChat from '@/api/chat'
 import CRUD, { presenter, header, form, crud } from '@crud/crud'
-import { register } from 'vue-advanced-chat'
-import Avatar from '@/assets/images/zhixue.png'
-import { getRoomHistory, addRoom, delRoom, editRoom } from '@/api/room'
-import { getToken } from '@/utils/auth'
+import rrOperation from '@crud/RR.operation'
+import crudOperation from '@crud/CRUD.operation'
+import udOperation from '@crud/UD.operation'
+import pagination from '@crud/Pagination'
 
+const defaultForm = { Id: null, timestamp: null, content: null, senderId: null, date: null, type: null, pid: null, userId: null, roomId: null }
 export default {
   name: 'Chat',
-  mixins: [presenter(), header(), crud()],
+  components: { pagination, crudOperation, rrOperation, udOperation },
+  mixins: [presenter(), header(), form(defaultForm), crud()],
   cruds() {
-    return CRUD({
-      title: '聊天主题',
-      url: 'api/news',
-      idField: 'newsId',
-      sort: 'newsId,desc',
-      crudMethod: { ...crudNews }
-    })
+    return CRUD({ title: '聊天', url: 'api/chat', idField: 'Id', sort: 'Id,desc', crudMethod: { ...crudChat }})
   },
   data() {
     return {
-      moduleId: '', // 模型ID
-      chatModule: [], // 存储模型的数组
-      roomContent: '',
-      roomTitle: '',
-      cu: false,
-      imageUrl: '',
-      rules: {},
-      dialogVisible: false,
-      sRoomId: '0',
-      sModuleId: '0',
-      currentUserId: '1234',
-      query: {
-        page: 0,
-        size: 10,
-        sort: 'id,desc'
+      permission: {
+        add: ['admin', 'chat:add'],
+        edit: ['admin', 'chat:edit'],
+        del: ['admin', 'chat:del']
       },
-      rooms: [],
-      messages: [],
-      messagesLoaded: false,
-      headers: {},
-      createNew: false
+      rules: {
+      },
+      queryTypeOptions: [
+        { key: 'senderId', display_name: 'user_id' }
+      ]
     }
-  },
-  mounted() {
-    const _this = this
-    this.RoomHistory()
-    this.getModules()
-  },
-  created() {
-    register()
-    this.initWebSocket()
   },
   methods: {
-    handleAvatarSuccess(res, file) {
-      console.log(res)
-      this.imageUrl = URL.createObjectURL(file.raw)
-      this.form.coverImg = '/file/' + res.type + '/' + res.realName
-    },
-    beforeUpload() {
-      this.headers.Authorization = getToken()
-      // 执行其他验证...
-    },
-    // addRoom弹框
-    handleClose(done) {
-      this.$confirm('确认关闭？')
-        .then(_ => {
-          done()
-        })
-        .catch(_ => {
-        })
-    },
-    getModules() {
-      // let i = 0
-      // for (; i < 4;) {
-      //   this.chatModule.push({
-      //     id: i++ + '',
-      //     moduleName: '121',
-      //     moduleContent: '123214'
-      //   })
-      // }
-      getChatModule()
-        .then(res => {
-          this.chatModule = res
-        })
-        .catch(err => {
-          console.log(err)
-        })
-    },
-    module1(module) {
-      this.moduleId = module
-      this.createNew = true
-    },
-    RoomHistory() {
-      getRoomHistory().then((res) => {
-        this.newRooms = res
-        this.rooms.push({
-          roomId: '0',
-          roomName: '知学chat',
-          avatar: Avatar,
-          users: [
-            { _id: '4321', username: '知学chat' },
-            { _id: '1234', username: 'me' }
-          ],
-          module: this.sModuleId
-        })
-        for (let i = 0; i < this.newRooms.length; i++) {
-          this.rooms.push({
-            roomId: this.newRooms[i].id,
-            roomName: this.newRooms[i].title,
-            avatar: 'http://localhost:18000' + '/file/module/' + this.newRooms[i].module + '.png',
-            users: [
-              { _id: '4321', username: '知学chat' },
-              { _id: '1234', username: 'me' }
-            ],
-            module: this.sModuleId
-          })
-        }
-      })
-    },
-    fetchMessages({ options = {}, room }) {
-      this.messagesLoaded = false
-      setTimeout(() => {
-        this.sRoomId = room.roomId
-        this.sModuleId = room.module
-        if (options.reset) {
-          this.messages = ''
-          this.query.page = 0
-          this.addMessages(true)
-        } else {
-          this.addMessages(false)
-        }
-      })
-    },
-    async addMessages(reset) {
-      var messages = []
-      var content = []
-      console.log(this.query.page)
-      await getHistory(this.sRoomId, this.query).then((res) => {
-        content = res.content
-        this.query.page++
-      })
-
-      if (content.length === 0) {
-        this.messagesLoaded = true // 暂停历史记录追溯
-        return
-      }
-      for (let i = 0; i < content.length; i++) {
-        messages.push({
-          _id: reset ? i : this.messages.length + i,
-          content: `${content[i].content}`,
-          senderId: `${content[i].type !== 0 ? '4321' : '1234'}`,
-          username: `${content[i].type !== 0 ? '知学chat' : 'me'}`,
-          date: `${content[i].date}`,
-          timestamp: `${content[i].date.toString().substring(10, 21)}`
-        })
-      }
-      if (reset) {
-        this.messages = messages
-      } else {
-        this.messages = [...messages, ...this.messages]
-      }
-      if (content.length < 10) {
-        this.messagesLoaded = true // 暂停历史记录追溯
-        return
-      }
-    },
-
-    sendMessage(message) {
-      debugger
-      console.log(this.messages.length)
-      var timestamp = new Date().toString().substring(16, 21)
-      var date = new Date().toDateString()
-      this.messages = [
-        ...this.messages,
-        {
-          _id: this.messages.length,
-          content: message.content,
-          senderId: this.currentUserId,
-          timestamp: timestamp,
-          date: date
-        }
-      ]
-      add({
-        content: message.content,
-        senderId: this.currentUserId,
-        roomId: this.sRoomId
-      }, this.sModuleId).then((res) => {
-        res._id = this.messages.length;
-        (res.senderId = '4321'), (res.timestamp = timestamp), (res.date = date)
-        this.messages = [...this.messages, res]
-      })
-    },
-    addNewMessage() {
-      setTimeout(() => {
-        this.messages = [
-          ...this.messages,
-          {
-            _id: this.messages.length,
-            content: 'NEW MESSAGE',
-            senderId: '1234',
-            timestamp: new Date().toString().substring(16, 21),
-            date: new Date().toDateString()
-          }
-        ]
-      }, 2000)
-    },
-    addRoom() {
-      this.dialogVisible = false
-      if (this.roomContent !== '' && this.roomTitle !== '' && this.createNew) {
-        addRoom({
-          title: this.roomTitle,
-          content: this.roomContent,
-          module: this.moduleId
-        }).then(res => {
-          this.rooms.push({
-            roomId: res.id,
-            roomName: res.title,
-            avatar: 'http://localhost:18000' + '/file/module/' + this.moduleId.pathName,
-            // 'http://localhost:18000' + '/avatar/' + 'avatar-20230817093848199.png',
-            users: [
-              { _id: '4321', username: '知学chat' },
-              { _id: '1234', username: 'me' }
-            ],
-            module: this.sModuleId
-          })
-          this.roomTitle = ''
-          this.roomContent = ''
-          this.createNew = false
-        }).catch(err => {
-          console.log(err)
-        })
-      }
+    // 钩子：在获取表格数据之前执行，false 则代表不获取数据
+    [CRUD.HOOK.beforeRefresh]() {
+      return true
     }
-
   }
 }
 </script>
 
 <style scoped>
-.avatar-uploader .el-upload {
-  border: 1px dashed #d9d9d9;
-  border-radius: 6px;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-}
 
-.avatar-uploader .el-upload:hover {
-  border-color: #409EFF;
-}
-
-.avatar-uploader-icon {
-  font-size: 28px;
-  color: #8c939d;
-  width: 178px;
-  height: 178px;
-  line-height: 178px;
-  text-align: center;
-}
-
-.avatar {
-  width: 178px;
-  height: 178px;
-  display: block;
-}
-
-/* 分 */
-.avatar-uploader .el-upload {
-  border: 1px dashed #d9d9d9;
-  border-radius: 6px;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-}
-
-.avatar-uploader .el-upload:hover {
-  border-color: #409eff;
-}
-
-.avatar-uploader-icon {
-  font-size: 28px;
-  color: #8c939d;
-  width: 178px;
-  height: 178px;
-  line-height: 178px;
-  text-align: center;
-}
-
-.avatar {
-  width: 178px;
-  height: 178px;
-  display: block;
-}
-
-.hide-new-messages {
-  display: none;
-}
 </style>

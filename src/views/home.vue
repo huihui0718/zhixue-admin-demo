@@ -33,7 +33,7 @@
                   display: inline-block; "
                   >
                   {{ chatModules.moduleName }}
-                  <el-button type="primary" plain style="margin-top: 0px; right: 20px; display: inline-block; position: absolute" @click="module1(chatModules.id)"> 选 择 </el-button>
+                  <el-button type="primary" plain style="margin-top: 0px; right: 20px; display: inline-block; position: absolute" @click="module1(chatModules.id,chatModules.moduleName)"> 选 择 </el-button>
                   <div style="font-size: 15px;color: #7e7b7b;">{{ chatModules.moduleContent }}</div>
                 </div>
               </el-form-item>
@@ -82,6 +82,7 @@ export default {
   },
   data() {
     return {
+      sModuleName: '',
       sModuleId: '1', // 切换房间时的模型Id
       moduleId: '', // 模型ID
       chatModule: [], // 存储模型的数组
@@ -123,9 +124,7 @@ export default {
     },
     beforeUpload() {
       this.headers.Authorization = getToken()
-      // 执行其他验证...
     },
-    // addRoom弹框
     handleClose(done) {
       this.$confirm('确认关闭？')
         .then(_ => {
@@ -135,14 +134,6 @@ export default {
         })
     },
     getModules() {
-      // let i = 0
-      // for (; i < 4;) {
-      //   this.chatModule.push({
-      //     id: i++ + '',
-      //     moduleName: '121',
-      //     moduleContent: '123214'
-      //   })
-      // }
       getChatModule()
         .then(res => {
           this.chatModule = res
@@ -151,13 +142,15 @@ export default {
           console.log(err)
         })
     },
-    module1(moduleId) {
+    module1(moduleId,moduleName) {
       this.moduleId = moduleId
+      this.sModuleName = moduleName
       this.createNew = true
     },
     RoomHistory() {
       getRoomHistory().then((res) => {
         this.newRooms = res
+        console.log(res)
         this.rooms.push({
           roomId: '0',
           roomName: '知学chat',
@@ -172,7 +165,7 @@ export default {
           this.rooms.push({
             roomId: this.newRooms[i].id,
             roomName: this.newRooms[i].title,
-            avatar: this.Api + '/file/module/' + this.newRooms[i].module + '.png',
+            avatar: this.Api + '/file/module/' + this.newRooms[i].pathName,
             users: [
               { _id: '4321', username: '知学chat' },
               { _id: '1234', username: 'me' }
@@ -180,7 +173,6 @@ export default {
             module: this.newRooms[i].module
           })
         }
-        console.log(this.rooms)
       })
     },
     fetchMessages({ options = {}, room }) {
@@ -200,7 +192,6 @@ export default {
     async addMessages(reset) {
       var messages = []
       var content = []
-      console.log(this.query.page)
       await getHistory(this.sRoomId, this.query).then((res) => {
         content = res.content
         this.query.page++
@@ -275,13 +266,15 @@ export default {
         addRoom({
           title: this.roomTitle,
           content: this.roomContent,
-          module: this.moduleId
+          module: this.moduleId,
+          moduleName: this.sModuleName
         }).then(res => {
+          // const targetObject = this.chatModule.find(item => item.id === this.moduleId).moduleName
           this.rooms.push({
             roomId: res.id,
             roomName: res.title,
-            avatar: this.Api + '/file/module/' + this.moduleId + '.png',
-            // 'http://localhost:18000' + '/avatar/' + 'avatar-20230817093848199.png',
+            avatar: this.Api + '/file/module/' + this.chatModule.find(item => item.id === this.moduleId).pathName,
+            // this.moduleId + '.png',
             users: [
               { _id: '4321', username: '知学chat' },
               { _id: '1234', username: 'me' }
