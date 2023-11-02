@@ -27,7 +27,7 @@
               <el-form-item v-for="chatModules in chatModule" :key="chatModules.id" @click="module1(chatModules.id) ">
                 <div style="font-size: 30px; padding-left: 30px;padding-top:15px ; border: 2px solid rgba(249,249,252); display: block ;border-radius: 10px;">
                   <img
-                    :src="Api + '/file/module/' + chatModules.pathName "
+                    :src="Api + chatModules.path "
                     class="avatar"
                     style="vertical-align: middle;  border-radius: 30px; height: 40px; width: 40px;
                   display: inline-block; "
@@ -165,7 +165,7 @@ export default {
           this.rooms.push({
             roomId: this.newRooms[i].id,
             roomName: this.newRooms[i].title,
-            avatar: this.Api + '/file/module/' + this.newRooms[i].pathName,
+            avatar: this.Api + '/file/IMAGE/' + this.newRooms[i].pathName,
             users: [
               { _id: '4321', username: '知学chat' },
               { _id: '1234', username: 'me' }
@@ -273,7 +273,7 @@ export default {
           this.rooms.push({
             roomId: res.id,
             roomName: res.title,
-            avatar: this.Api + '/file/module/' + this.chatModule.find(item => item.id === this.moduleId).pathName,
+            avatar: this.Api + this.chatModule.find(item => item.id === this.moduleId).path,
             // this.moduleId + '.png',
             users: [
               { _id: '4321', username: '知学chat' },

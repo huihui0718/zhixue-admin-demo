@@ -7,15 +7,15 @@
       <!--表单组件-->
       <el-dialog :close-on-click-modal="false" :before-close="crud.cancelCU" :visible.sync="crud.status.cu > 0" :title="crud.status.title" width="500px">
         <el-form ref="form" :model="form" :rules="rules" size="small" label-width="80px">
-          <!--          <el-form-item label="房间标题" prop="title">-->
-          <!--            <el-input v-model="form.title" style="width: 370px;" />-->
-          <!--          </el-form-item>-->
-          <!--          <el-form-item label="房间描述" prop="content">-->
-          <!--            <el-input v-model="form.content" style="width: 370px;" />-->
-          <!--          </el-form-item>-->
-          <!--          <el-form-item label="模型名字" prop="moduleName">-->
-          <!--            <el-input v-model="form.moduleName" style="width: 370px;" />-->
-          <!--          </el-form-item>-->
+          <el-form-item label="房间标题" prop="title">
+            <el-input v-model="form.title" style="width: 370px;" />
+          </el-form-item>
+          <el-form-item label="房间描述" prop="content">
+            <el-input v-model="form.content" style="width: 370px;" />
+          </el-form-item>
+          <el-form-item label="模型名字" prop="moduleName">
+            <el-input v-model="form.moduleName" style="width: 370px;" />
+          </el-form-item>
         </el-form>
         <div slot="footer" class="dialog-footer">
           <el-button type="text" @click="crud.cancelCU">取消</el-button>

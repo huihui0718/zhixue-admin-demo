@@ -13,6 +13,15 @@
       <!--表单组件-->
       <el-dialog :close-on-click-modal="false" :before-close="crud.cancelCU" :visible.sync="crud.status.cu > 0" :title="crud.status.title" width="500px">
         <el-form ref="form" :model="form" :rules="rules" size="small" label-width="80px">
+          <el-form-item label="回答" prop="content">
+            <el-input v-model="form.content" style="width: 370px;" />
+          </el-form-item>
+          <el-form-item label="日期" prop="date">
+            <el-input v-model="form.date" style="width: 370px;" />
+          </el-form-item>
+          <el-form-item label="提问回答" prop="type">
+            <el-input v-model="form.type" style="width: 370px;" />
+          </el-form-item>
         </el-form>
         <div slot="footer" class="dialog-footer">
           <el-button type="text" @click="crud.cancelCU">取消</el-button>
@@ -28,6 +37,7 @@
         <el-table-column prop="senderId" label="user_id" />
         <el-table-column prop="date" label="时分" />
         <el-table-column prop="type" label="0:提问 1:回答" />
+        <el-table-column prop="chatHot" label="1:热门" />
 <!--        <el-table-column prop="pid" label="pid" />-->
 <!--        <el-table-column prop="userId" label="userId" />-->
 <!--        <el-table-column prop="roomId" label="roomId" />-->
@@ -54,7 +64,7 @@ import crudOperation from '@crud/CRUD.operation'
 import udOperation from '@crud/UD.operation'
 import pagination from '@crud/Pagination'
 
-const defaultForm = { Id: null, timestamp: null, content: null, senderId: null, date: null, type: null, pid: null, userId: null, roomId: null }
+const defaultForm = { Id: null, timestamp: null, content: null, senderId: null, date: null, type: null, pid: null, userId: null, roomId: null, chatHot: null }
 export default {
   name: 'Chat',
   components: { pagination, crudOperation, rrOperation, udOperation },
