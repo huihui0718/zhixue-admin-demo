@@ -25,6 +25,7 @@
       <!--表格渲染-->
       <el-table ref="table" v-loading="crud.loading" :data="crud.data" size="small" style="width: 100%;" @selection-change="crud.selectionChangeHandler">
         <el-table-column type="selection" width="55" />
+        <el-table-column prop="id" label="id" />
         <el-table-column prop="title" label="房间标题" />
         <el-table-column prop="createtime" label="创建时间" />
         <el-table-column prop="content" label="房间描述" />
