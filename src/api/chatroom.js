@@ -24,4 +24,13 @@ export function edit(data) {
   })
 }
 
+export function addImage(data, params) {
+  return request({
+    url: 'api/newChatRoomMessage/addImage',
+    method: 'post',
+    data,
+    params
+  })
+}
+
 export default { add, edit, del }

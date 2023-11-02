@@ -7,9 +7,15 @@
         :current-user-id="currentUserId"
         :rooms="JSON.stringify(rooms)"
         :rooms-loaded="true"
+        :show-files="true"
+        :show-audio="true"
+        :show-footer="true"
         :messages="JSON.stringify(messages)"
         :messages-loaded="messagesLoaded"
         :load-first-room="false"
+        :multiple-files="true"
+        accepted-files="*"
+        @open-file="openFile($event.detail[0])"
         @send-message="sendMessage($event.detail[0])"
         @fetch-messages="fetchMessages($event.detail[0])"
         @add-room="dialogVisible = true"
@@ -27,24 +33,24 @@
               <el-form-item v-for="chatModules in chatModule" :key="chatModules.id" @click="module1(chatModules.id) ">
                 <div style="font-size: 30px; padding-left: 30px;padding-top:15px ; border: 2px solid rgba(249,249,252); display: block ;border-radius: 10px;">
                   <img
-                    :src="'http://localhost:18000' + '/file/' + '62A1559C3E1AD21DC855532BE8D_6845A5A0_1DFDEE.jpg' "
+                    :src="Api + chatModules.path "
                     class="avatar"
                     style="vertical-align: middle;  border-radius: 30px; height: 40px; width: 40px;
                   display: inline-block; "
                   >
                   {{ chatModules.moduleName }}
-                  <el-button type="primary" plain style="margin-top: 0px; right: 20px; display: inline-block; position: absolute" @click="module1(chatModules.id)"> 选 择 </el-button>
-                  <div style="font-size: 15px;color: #7e7b7b;">({{ chatModules.moduleContent }})</div>
+                  <el-button type="primary" plain style="margin-top: 0px; right: 20px; display: inline-block; position: absolute" @click="module1(chatModules.id,chatModules.moduleName)"> 选 择 </el-button>
+                  <div style="font-size: 15px;color: #7e7b7b;">{{ chatModules.moduleContent }}</div>
                 </div>
               </el-form-item>
             </el-col>
           </el-row>
           <el-form />
           <el-form>
-            <el-form-item label="主题:">
+            <el-form-item label="房间名:">
               <el-input v-model="roomTitle" style="width: 160px" />
             </el-form-item>
-            <el-form-item label="描述:">
+            <el-form-item label="简介:">
               <el-input v-model="roomContent" style="width: 160px" />
             </el-form-item>
           </el-form>
@@ -60,6 +66,7 @@
 
 <script>
 import { add, getHistory } from '@/api/chat'
+import { addImage } from '@/api/chatroom'
 import { getChatModule } from '@/api/chatMoudle'
 import crudNews from '@/api/news'
 import CRUD, { presenter, header, form, crud } from '@crud/crud'
@@ -67,13 +74,14 @@ import { register } from 'vue-advanced-chat'
 import Avatar from '@/assets/images/zhixue.png'
 import { getRoomHistory, addRoom, delRoom, editRoom } from '@/api/room'
 import { getToken } from '@/utils/auth'
+import Api from '@/store/modules/api'
 
 export default {
   name: 'Chat',
   mixins: [presenter(), header(), crud()],
   cruds() {
     return CRUD({
-      title: '咨询',
+      title: '聊天主题',
       url: 'api/news',
       idField: 'newsId',
       sort: 'newsId,desc',
@@ -82,26 +90,30 @@ export default {
   },
   data() {
     return {
+      sModuleName: '',
+      sModuleId: '1', // 切换房间时的模型Id
       moduleId: '', // 模型ID
       chatModule: [], // 存储模型的数组
-      roomContent: '',
-      roomTitle: '',
+      roomContent: '', // 模型的描述
+      roomTitle: '', // 房间的标题
       cu: false,
       imageUrl: '',
       rules: {},
       dialogVisible: false,
-      sRoomId: '0',
+      sRoomId: '0', // 切换房间时的roomId
       currentUserId: '1234',
       query: {
         page: 0,
         size: 10,
         sort: 'id,desc'
       },
-      rooms: [],
-      messages: [],
+      rooms: [], // 存储房间的数组
+      messages: [], // 存储消息的数组
       messagesLoaded: false,
       headers: {},
-      createNew: false
+      createNew: false,
+      selectedFile: null,
+      Api: 'http://localhost:8000'
     }
   },
   mounted() {
@@ -114,6 +126,9 @@ export default {
     this.initWebSocket()
   },
   methods: {
+    openFile({ file }) {
+      window.open(file.file.url, '_blank')
+    },
     handleAvatarSuccess(res, file) {
       console.log(res)
       this.imageUrl = URL.createObjectURL(file.raw)
@@ -121,9 +136,7 @@ export default {
     },
     beforeUpload() {
       this.headers.Authorization = getToken()
-      // 执行其他验证...
     },
-    // addRoom弹框
     handleClose(done) {
       this.$confirm('确认关闭？')
         .then(_ => {
@@ -133,30 +146,23 @@ export default {
         })
     },
     getModules() {
-      let i = 0
-      for (; i < 4;) {
-        this.chatModule.push({
-          id: i++ + '',
-          moduleName: '121',
-          moduleContent: '123214'
+      getChatModule()
+        .then(res => {
+          this.chatModule = res
         })
-      }
-      // getChatModule()
-      //   .then(res => {
-      //     this.chatModule = res
-      //   })
-      //   .catch(err => {
-      //     console.log(err)
-      //   })
+        .catch(err => {
+          console.log(err)
+        })
     },
-    module1(moduleId) {
+    module1(moduleId, moduleName) {
       this.moduleId = moduleId
+      this.sModuleName = moduleName
       this.createNew = true
-      console.log(this.moduleId)
     },
     RoomHistory() {
       getRoomHistory().then((res) => {
         this.newRooms = res
+        console.log(res)
         this.rooms.push({
           roomId: '0',
           roomName: '知学chat',
@@ -164,17 +170,19 @@ export default {
           users: [
             { _id: '4321', username: '知学chat' },
             { _id: '1234', username: 'me' }
-          ]
+          ],
+          module: '1'
         })
         for (let i = 0; i < this.newRooms.length; i++) {
           this.rooms.push({
             roomId: this.newRooms[i].id,
             roomName: this.newRooms[i].title,
-            avatar: 'http://localhost:18000' + '/file/module/' + this.newRooms[i].module + '.png',
+            avatar: this.Api + '/file/IMAGE/' + this.newRooms[i].pathName,
             users: [
               { _id: '4321', username: '知学chat' },
               { _id: '1234', username: 'me' }
-            ]
+            ],
+            module: this.newRooms[i].module
           })
         }
       })
@@ -183,6 +191,7 @@ export default {
       this.messagesLoaded = false
       setTimeout(() => {
         this.sRoomId = room.roomId
+        this.sModuleId = room.module
         if (options.reset) {
           this.messages = ''
           this.query.page = 0
@@ -195,7 +204,6 @@ export default {
     async addMessages(reset) {
       var messages = []
       var content = []
-      console.log(this.query.page)
       await getHistory(this.sRoomId, this.query).then((res) => {
         content = res.content
         this.query.page++
@@ -206,14 +214,33 @@ export default {
         return
       }
       for (let i = 0; i < content.length; i++) {
-        messages.push({
-          _id: reset ? i : this.messages.length + i,
-          content: `${content[i].content}`,
-          senderId: `${content[i].type !== 0 ? '4321' : '1234'}`,
-          username: `${content[i].type !== 0 ? '知学chat' : 'me'}`,
-          date: `${content[i].date}`,
-          timestamp: `${content[i].date.toString().substring(10, 21)}`
-        })
+        if (content[i].chatType === 'TEXT') {
+          messages.push({
+            _id: reset ? i : this.messages.length + i,
+            content: `${content[i].content}`,
+            senderId: `${content[i].type !== 0 ? '4321' : '1234'}`,
+            username: `${content[i].type !== 0 ? '知学chat' : 'me'}`,
+            date: `${content[i].date}`,
+            timestamp: `${content[i].date.toString().substring(10, 21)}`
+          })
+        } else {
+          const type = content[i].pathName.split('.').pop()
+          const path = content[i].pathName.split('.').pop() === 'mp3' ? 'MUSIC' : 'TXT'
+          messages.push({
+            _id: reset ? i : this.messages.length + i,
+            senderId: `${content[i].type !== 0 ? '4321' : '1234'}`,
+            username: `${content[i].type !== 0 ? '知学chat' : 'me'}`,
+            date: `${content[i].date}`,
+            timestamp: `${content[i].date.toString().substring(10, 21)}`,
+            files: [{
+              name: content[i].pathName,
+              type: type,
+              extension: type,
+              url: this.Api + '/file/' + path + '/' + content[i].pathName
+            }]
+          })
+        }
+        console.log(content[i].chatType)
       }
       if (reset) {
         this.messages = messages
@@ -225,32 +252,107 @@ export default {
         return
       }
     },
-
-    sendMessage(message) {
+    async sendMessage({ content, files, replyMessage }) {
+      // content消息内容 、 roomId房间id 、files文件 、replyMessage（微信引用）回复的消息
       debugger
-      console.log(this.messages.length)
       var timestamp = new Date().toString().substring(16, 21)
       var date = new Date().toDateString()
-      this.messages = [
-        ...this.messages,
-        {
-          _id: this.messages.length,
-          content: message.content,
-          senderId: this.currentUserId,
-          timestamp: timestamp,
-          date: date
+      if (files) {
+        const fileData = {
+          blob: files[0].blob,
+          name: files[0].name,
+          size: files[0].size,
+          type: files[0].extension
         }
-      ]
-      add({
-        content: message.content,
-        senderId: this.currentUserId,
-        roomId: this.sRoomId
-      }).then((res) => {
-        res._id = this.messages.length;
-        (res.senderId = '4321'), (res.timestamp = timestamp), (res.date = date)
-        this.messages = [...this.messages, res]
-      })
+        console.log(fileData)
+        let fileName
+
+        if (files[0].name === 'audio.mp3') {
+          fileName = fileData.name
+        } else {
+          fileName = fileData.name + '.' + fileData.type
+        }
+
+        const fileExtension = fileData.name.split('.').pop()
+        const file1 = new File([fileData.blob.slice(0, fileData.size)], fileName, {
+          type: fileData.type,
+          lastModified: Date.now()
+        })
+        const formData = new FormData()
+        formData.append('file', file1)
+        console.log(file1)
+        this.messages = [
+          ...this.messages,
+          {
+            _id: this.messages.length,
+            content: content,
+            senderId: this.currentUserId,
+            timestamp: timestamp,
+            date: date,
+            files: this.formattedFiles(files)
+            // files: [{
+            //   name: 'da',
+            //   type: 'mp3',
+            //   extension: 'mp3',
+            //   url: this.Api + '/file/audio-2023110503454466.mp3'
+            // }]
+          }
+        ]
+        addImage(formData, {
+          roomId: this.sRoomId,
+          moduleId: this.sModuleId
+        }).then((res) => {
+          res._id = this.messages.length;
+          (res.senderId = '4321'), (res.timestamp = timestamp), (res.date = date)
+          this.messages = [...this.messages, res]
+        }).catch(err => {
+          console.log(err)
+        })
+      } else {
+        this.messages = [
+          ...this.messages,
+          {
+            _id: this.messages.length,
+            content: content,
+            senderId: this.currentUserId,
+            timestamp: timestamp,
+            date: date
+          }
+        ]
+        add({
+          content: content,
+          senderId: this.currentUserId,
+          roomId: this.sRoomId
+        }, this.sModuleId).then((res) => {
+          res._id = this.messages.length;
+          (res.senderId = '4321'), (res.timestamp = timestamp), (res.date = date)
+          this.messages = [...this.messages, res]
+        })
+      }
     },
+    formattedFiles(files) {
+      const formattedFiles = []
+
+      files.forEach(file => {
+        const messageFile = {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          extension: file.extension || file.type,
+          url: file.url || file.localUrl
+        }
+
+        if (file.audio) {
+          messageFile.audio = true
+          messageFile.duration = file.duration
+        }
+
+        formattedFiles.push(messageFile)
+      })
+
+      return formattedFiles
+    },
+
     addNewMessage() {
       setTimeout(() => {
         this.messages = [
@@ -271,17 +373,20 @@ export default {
         addRoom({
           title: this.roomTitle,
           content: this.roomContent,
-          module: this.moduleId
+          module: this.moduleId,
+          moduleName: this.sModuleName
         }).then(res => {
+          // const targetObject = this.chatModule.find(item => item.id === this.moduleId).moduleName
           this.rooms.push({
             roomId: res.id,
             roomName: res.title,
-            avatar: 'http://localhost:18000' + '/file/module/' + this.moduleId + '.png',
-            // 'http://localhost:18000' + '/avatar/' + 'avatar-20230817093848199.png',
+            avatar: this.Api + this.chatModule.find(item => item.id === this.moduleId).path,
+            // this.moduleId + '.png',
             users: [
               { _id: '4321', username: '知学chat' },
               { _id: '1234', username: 'me' }
-            ]
+            ],
+            module: this.moduleId
           })
           this.roomTitle = ''
           this.roomContent = ''
@@ -290,45 +395,6 @@ export default {
           console.log(err)
         })
       }
-    },
-    initWebSocket() {
-      const wsUri =
-        (process.env.VUE_APP_WS_API === '/'
-          ? '/'
-          : process.env.VUE_APP_WS_API + '/') + 'webSocket/deploy/0'
-      this.websock = new WebSocket(wsUri)
-      this.websock.onerror = this.webSocketOnError
-      this.websock.onmessage = this.webSocketOnMessage
-    },
-    webSocketOnError(e) {
-      this.$notify({
-        title: 'WebSocket连接发生错误',
-        type: 'error',
-        duration: 0
-      })
-    },
-    webSocketOnMessage(e) {
-      const data = JSON.parse(e.data)
-      if (data.msgType === 'INFO') {
-        this.$notify({
-          title: '',
-          message: data.msg,
-          type: 'success',
-          dangerouslyUseHTMLString: true,
-          duration: 5500
-        })
-      } else if (data.msgType === 'ERROR') {
-        this.$notify({
-          title: '',
-          message: data.msg,
-          dangerouslyUseHTMLString: true,
-          type: 'error',
-          duration: 0
-        })
-      }
-    },
-    webSocketSend(agentData) {
-      this.websock.send(agentData)
     }
   }
 }

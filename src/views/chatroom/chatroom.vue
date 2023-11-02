@@ -68,7 +68,8 @@ export default {
     },
     addImage(file) {
       const formData = new FormData()
-      formData.append('chatroomimage', file) // 将文件字段名设置为'image'
+      formData.append('file', file) // 将文件字段名设置为'image'
+      console.log(file)
       return addImage(formData, this.roomId)
     },
     connectWebSocket() {

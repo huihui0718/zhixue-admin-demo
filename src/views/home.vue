@@ -7,9 +7,15 @@
         :current-user-id="currentUserId"
         :rooms="JSON.stringify(rooms)"
         :rooms-loaded="true"
+        :show-files="true"
+        :show-audio="true"
+        :show-footer="true"
         :messages="JSON.stringify(messages)"
         :messages-loaded="messagesLoaded"
         :load-first-room="false"
+        :multiple-files="true"
+        accepted-files="*"
+        @open-file="openFile($event.detail[0])"
         @send-message="sendMessage($event.detail[0])"
         @fetch-messages="fetchMessages($event.detail[0])"
         @add-room="dialogVisible = true"
@@ -60,6 +66,7 @@
 
 <script>
 import { add, getHistory } from '@/api/chat'
+import { addImage } from '@/api/chatroom'
 import { getChatModule } from '@/api/chatMoudle'
 import crudNews from '@/api/news'
 import CRUD, { presenter, header, form, crud } from '@crud/crud'
@@ -67,6 +74,7 @@ import { register } from 'vue-advanced-chat'
 import Avatar from '@/assets/images/zhixue.png'
 import { getRoomHistory, addRoom, delRoom, editRoom } from '@/api/room'
 import { getToken } from '@/utils/auth'
+import Api from '@/store/modules/api'
 
 export default {
   name: 'Chat',
@@ -104,7 +112,8 @@ export default {
       messagesLoaded: false,
       headers: {},
       createNew: false,
-      Api: 'http://localhost:18000'
+      selectedFile: null,
+      Api: 'http://localhost:8000'
     }
   },
   mounted() {
@@ -117,6 +126,9 @@ export default {
     this.initWebSocket()
   },
   methods: {
+    openFile({ file }) {
+      window.open(file.file.url, '_blank')
+    },
     handleAvatarSuccess(res, file) {
       console.log(res)
       this.imageUrl = URL.createObjectURL(file.raw)
@@ -142,7 +154,7 @@ export default {
           console.log(err)
         })
     },
-    module1(moduleId,moduleName) {
+    module1(moduleId, moduleName) {
       this.moduleId = moduleId
       this.sModuleName = moduleName
       this.createNew = true
@@ -202,14 +214,33 @@ export default {
         return
       }
       for (let i = 0; i < content.length; i++) {
-        messages.push({
-          _id: reset ? i : this.messages.length + i,
-          content: `${content[i].content}`,
-          senderId: `${content[i].type !== 0 ? '4321' : '1234'}`,
-          username: `${content[i].type !== 0 ? '知学chat' : 'me'}`,
-          date: `${content[i].date}`,
-          timestamp: `${content[i].date.toString().substring(10, 21)}`
-        })
+        if (content[i].chatType === 'TEXT') {
+          messages.push({
+            _id: reset ? i : this.messages.length + i,
+            content: `${content[i].content}`,
+            senderId: `${content[i].type !== 0 ? '4321' : '1234'}`,
+            username: `${content[i].type !== 0 ? '知学chat' : 'me'}`,
+            date: `${content[i].date}`,
+            timestamp: `${content[i].date.toString().substring(10, 21)}`
+          })
+        } else {
+          const type = content[i].pathName.split('.').pop()
+          const path = content[i].pathName.split('.').pop() === 'mp3' ? 'MUSIC' : 'TXT'
+          messages.push({
+            _id: reset ? i : this.messages.length + i,
+            senderId: `${content[i].type !== 0 ? '4321' : '1234'}`,
+            username: `${content[i].type !== 0 ? '知学chat' : 'me'}`,
+            date: `${content[i].date}`,
+            timestamp: `${content[i].date.toString().substring(10, 21)}`,
+            files: [{
+              name: content[i].pathName,
+              type: type,
+              extension: type,
+              url: this.Api + '/file/' + path + '/' + content[i].pathName
+            }]
+          })
+        }
+        console.log(content[i].chatType)
       }
       if (reset) {
         this.messages = messages
@@ -221,31 +252,107 @@ export default {
         return
       }
     },
-    sendMessage(message) {
+    async sendMessage({ content, files, replyMessage }) {
+      // content消息内容 、 roomId房间id 、files文件 、replyMessage（微信引用）回复的消息
       debugger
-      console.log(this.messages.length)
       var timestamp = new Date().toString().substring(16, 21)
       var date = new Date().toDateString()
-      this.messages = [
-        ...this.messages,
-        {
-          _id: this.messages.length,
-          content: message.content,
-          senderId: this.currentUserId,
-          timestamp: timestamp,
-          date: date
+      if (files) {
+        const fileData = {
+          blob: files[0].blob,
+          name: files[0].name,
+          size: files[0].size,
+          type: files[0].extension
         }
-      ]
-      add({
-        content: message.content,
-        senderId: this.currentUserId,
-        roomId: this.sRoomId
-      }, this.sModuleId).then((res) => {
-        res._id = this.messages.length;
-        (res.senderId = '4321'), (res.timestamp = timestamp), (res.date = date)
-        this.messages = [...this.messages, res]
-      })
+        console.log(fileData)
+        let fileName
+
+        if (files[0].name === 'audio.mp3') {
+          fileName = fileData.name
+        } else {
+          fileName = fileData.name + '.' + fileData.type
+        }
+
+        const fileExtension = fileData.name.split('.').pop()
+        const file1 = new File([fileData.blob.slice(0, fileData.size)], fileName, {
+          type: fileData.type,
+          lastModified: Date.now()
+        })
+        const formData = new FormData()
+        formData.append('file', file1)
+        console.log(file1)
+        this.messages = [
+          ...this.messages,
+          {
+            _id: this.messages.length,
+            content: content,
+            senderId: this.currentUserId,
+            timestamp: timestamp,
+            date: date,
+            files: this.formattedFiles(files)
+            // files: [{
+            //   name: 'da',
+            //   type: 'mp3',
+            //   extension: 'mp3',
+            //   url: this.Api + '/file/audio-2023110503454466.mp3'
+            // }]
+          }
+        ]
+        addImage(formData, {
+          roomId: this.sRoomId,
+          moduleId: this.sModuleId
+        }).then((res) => {
+          res._id = this.messages.length;
+          (res.senderId = '4321'), (res.timestamp = timestamp), (res.date = date)
+          this.messages = [...this.messages, res]
+        }).catch(err => {
+          console.log(err)
+        })
+      } else {
+        this.messages = [
+          ...this.messages,
+          {
+            _id: this.messages.length,
+            content: content,
+            senderId: this.currentUserId,
+            timestamp: timestamp,
+            date: date
+          }
+        ]
+        add({
+          content: content,
+          senderId: this.currentUserId,
+          roomId: this.sRoomId
+        }, this.sModuleId).then((res) => {
+          res._id = this.messages.length;
+          (res.senderId = '4321'), (res.timestamp = timestamp), (res.date = date)
+          this.messages = [...this.messages, res]
+        })
+      }
     },
+    formattedFiles(files) {
+      const formattedFiles = []
+
+      files.forEach(file => {
+        const messageFile = {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          extension: file.extension || file.type,
+          url: file.url || file.localUrl
+        }
+
+        if (file.audio) {
+          messageFile.audio = true
+          messageFile.duration = file.duration
+        }
+
+        formattedFiles.push(messageFile)
+      })
+
+      return formattedFiles
+    },
+
     addNewMessage() {
       setTimeout(() => {
         this.messages = [
