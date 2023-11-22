@@ -34,6 +34,9 @@
           <el-form-item label="是否为热点新闻:">
             <el-input v-model="form.isHot" label-width="180px" style="width: 370px" />
           </el-form-item>
+          <el-form-item label="新闻类型:">
+            <el-input v-model="form.type" label-width="180px" style="width: 370px" />
+          </el-form-item>
           <el-form-item label="推文内容:">
             <editor />
           </el-form-item>
@@ -74,6 +77,9 @@
         <el-table-column prop="isHot" label="是否为热点咨询" />
         <el-table-column prop="newsTitle" label="推文标题" />
         <el-table-column prop="publishTime" label="发布时间" />
+        <el-table-column prop="newsLike" label="点赞数目" />
+        <el-table-column prop="newsStar" label="收藏数目" />
+        <el-table-column prop="userId" label="用户Id" />
         <el-table-column
           v-if="checkPer(['admin', 'news:edit', 'news:del'])"
           label="操作"

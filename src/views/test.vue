@@ -90,7 +90,7 @@ export default {
   },
   data() {
     return {
-      sModuleName: '',
+      sModuleName: '', // 模型名
       sModuleId: '1', // 切换房间时的模型Id
       moduleId: '', // 模型ID
       chatModule: [], // 存储模型的数组
@@ -113,7 +113,7 @@ export default {
       headers: {},
       createNew: false,
       selectedFile: null,
-      Api: 'http://localhost:8000'
+      Api: 'http://localhost:8000' // 后端的Api
     }
   },
   mounted() {

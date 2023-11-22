@@ -81,11 +81,11 @@ export default {
   mixins: [presenter(), header(), crud()],
   cruds() {
     return CRUD({
-      title: '聊天主题',
-      url: 'api/news',
-      idField: 'newsId',
-      sort: 'newsId,desc',
-      crudMethod: { ...crudNews }
+      title: '聊天主题'
+      // url: 'api/news',
+      // idField: 'newsId',
+      // sort: 'newsId,desc',
+      // crudMethod: { ...crudNews }
     })
   },
   data() {
