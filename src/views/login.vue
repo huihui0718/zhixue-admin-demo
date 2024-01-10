@@ -2,7 +2,7 @@
   <div class="login" :style="'background-image:url('+ Background +');'">
     <el-form ref="loginForm" :model="loginForm" :rules="loginRules" label-position="left" label-width="0px" class="login-form">
       <h3 class="title">
-        知学Chat
+        登录
       </h3>
       <el-form-item prop="username">
         <el-input v-model="loginForm.username" type="text" auto-complete="off" placeholder="账号">
@@ -10,7 +10,7 @@
         </el-input>
       </el-form-item>
       <el-form-item prop="password">
-        <el-input v-model="loginForm.password" type="password" auto-complete="off" placeholder="密码" @keyup.enter.native="handleLogin">
+        <el-input v-model="loginForm.password" type="password" auto-complete="off" placeholder="请输入密码" @keyup.enter.native="handleLogin">
           <svg-icon slot="prefix" icon-class="password" class="el-input__icon input-icon" />
         </el-input>
       </el-form-item>
@@ -22,26 +22,29 @@
           <img :src="codeUrl" @click="getCode">
         </div>
       </el-form-item>
-      <el-checkbox v-model="loginForm.rememberMe" style="margin:0 0 25px 0;">
+      <el-checkbox v-if="!dialogVisible" v-model="loginForm.rememberMe" style="margin:0 0 25px 0;">
         记住我
       </el-checkbox>
       <el-form-item style="width:100%;">
-        <el-button :loading="loading" size="medium" type="primary" style="width:100%;" @click.native.prevent="handleLogin">
+        <el-button :loading="loading" size="medium" type="primary" style="width:60%; margin-left: 10px;" @click.native.prevent="handleLogin">
           <span v-if="!loading">登 录</span>
           <span v-else>登 录 中...</span>
         </el-button>
+        <el-button type="text" style="margin-left: 45px;" @click="dialogVisible = true"><strong>点击注册</strong></el-button>
       </el-form-item>
     </el-form>
-    <!--  底部
+    <!--  底部  -->
     <div v-if="$store.state.settings.showFooter" id="el-login-footer">
-      <span v-html="$store.state.settings.footerTxt" />
+      <!-- <span v-html="$store.state.settings.footerTxt" /> -->
       <span v-if="$store.state.settings.caseNumber"> ⋅ </span>
       <a href="https://beian.miit.gov.cn/#/Integrated/index" target="_blank">{{ $store.state.settings.caseNumber }}</a>
-    </div>-->
+    </div>
+    <register v-if="dialogVisible" />
   </div>
 </template>
 
 <script>
+import register from '@/views/register.vue'
 import { encrypt } from '@/utils/rsaEncrypt'
 import Config from '@/settings'
 import { getCodeImg } from '@/api/login'
@@ -50,14 +53,19 @@ import qs from 'qs'
 import Background from '@/assets/images/background.webp'
 export default {
   name: 'Login',
+  components: {
+    register
+  },
   data() {
     return {
+      dialogVisible: false,
+
       Background: Background,
       codeUrl: '',
       cookiePass: '',
       loginForm: {
-        username: '',
-        password: '',
+        username: 'admin',
+        password: '123456',
         rememberMe: false,
         code: '',
         uuid: ''

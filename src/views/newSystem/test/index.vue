@@ -4,11 +4,13 @@
     <el-button @click="test2">测试四号推文</el-button>
     <el-button @click="test3">测试五号推文</el-button>
     <el-button @click="getNewsPost">ceshi</el-button>
+    <el-button @click="getHistoryByRedis">查看历史信息</el-button>
+
   </div>
 </template>
 
 <script>
-import { getNewsPost, test, test2 } from '@/api/news'
+import { getHistoryByRedis, getNewsPost, test, test2 } from '@/api/news'
 export default {
   name: 'Index',
   data() {
@@ -38,6 +40,12 @@ export default {
         page: 0,
         size: 10,
         newsId: 6
+      },
+      getHistory: {
+        page: 0,
+        size: 10
+        // start: null,
+        // end: null
       }
     }
   },
@@ -77,6 +85,19 @@ export default {
     },
     getNewsPost() {
       getNewsPost(this.params4).then(res => {
+        console.log(res)
+      }).catch(err => {
+        console.log(err)
+      })
+    },
+    getHistoryByRedis() {
+      // 获取当前时间的时间戳
+      // this.getHistory.end = Date.now().toString().substring(16, 21)
+      // const sevenDaysAgo = new Date()
+      // sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+      // const sevenDaysAgoTimestamp = sevenDaysAgo.toString().substring(16, 21)
+      // this.getHistory.start = sevenDaysAgoTimestamp
+      getHistoryByRedis(this.getHistory).then(res => {
         console.log(res)
       }).catch(err => {
         console.log(err)

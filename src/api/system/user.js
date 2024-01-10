@@ -57,5 +57,13 @@ export function updateEmail(form) {
   })
 }
 
+export function zhuce(data) {
+  return request({
+    url: 'api/users/zhuce',
+    method: 'post',
+    data
+  })
+}
+
 export default { add, edit, del }
 

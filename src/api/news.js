@@ -32,6 +32,14 @@ export function test(params) {
   })
 }
 
+export function getHistoryByRedis(params) {
+  return request({
+    url: '/api/newsHistory/getHistoryByRedis',
+    method: 'get',
+    params
+  })
+}
+
 export function test2(params) {
   return request({
     url: '/api/news/newsUserLike',

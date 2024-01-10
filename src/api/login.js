@@ -33,3 +33,10 @@ export function logout() {
     method: 'delete'
   })
 }
+
+export function zhuce() {
+  return request({
+    url: 'auth/zhuce',
+    method: 'post'
+  })
+}
